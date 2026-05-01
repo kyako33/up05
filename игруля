@@ -1,0 +1,1086 @@
+import tkinter as tk
+from tkinter import messagebox, ttk
+import json
+import os
+
+class ModernNonogram:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Нонограмм")
+        self.root.geometry("900x700")
+        
+        # Данные игры
+        self.current_level = None
+        self.grid_data = None
+        self.user_grid = None
+        self.rows_hints = []
+        self.cols_hints = []
+        self.cell_size = 30
+        self.show_hints = True
+        self.current_theme = "dark"
+        self.current_screen = "start"
+        
+        # Отслеживание пройденных уровней
+        self.completed_levels = self.load_completed_levels()
+        
+        # Загрузка уровней
+        self.levels = self.load_levels()
+        
+        # Создание интерфейса
+        self.setup_styles()
+        self.create_main_frames()
+        self.show_start_screen()
+    
+    def load_completed_levels(self):
+        """Загрузка информации о пройденных уровнях"""
+        if os.path.exists("completed_levels.json"):
+            try:
+                with open("completed_levels.json", "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except:
+                return {}
+        return {}
+    
+    def save_completed_levels(self):
+        """Сохранение информации о пройденных уровнях"""
+        with open("completed_levels.json", "w", encoding="utf-8") as f:
+            json.dump(self.completed_levels, f, ensure_ascii=False, indent=2)
+    
+    def setup_styles(self):
+        """Настройка стилей в зависимости от темы"""
+        if self.current_theme == "dark":
+            self.colors = {
+                'bg': '#1a1a2e',
+                'card': '#16213e',
+                'card_hover': '#1e2a4a',
+                'accent': '#e94560',
+                'accent_hover': '#ff6b81',
+                'text': '#ffffff',
+                'text_secondary': '#a0a0a0',
+                'button': '#0f3460',
+                'button_hover': '#1a4a7a',
+                'grid_bg': '#2a2a3e',
+                'grid_line': '#3a3a4e',
+                'grid_cell': '#e94560',
+                'error': '#ff0000'
+            }
+        else:
+            self.colors = {
+                'bg': '#f0f0f0',
+                'card': '#ffffff',
+                'card_hover': '#e8e8e8',
+                'accent': '#4a90e2',
+                'accent_hover': '#6ba8ff',
+                'text': '#333333',
+                'text_secondary': '#666666',
+                'button': '#e0e0e0',
+                'button_hover': '#d0d0d0',
+                'grid_bg': '#ffffff',
+                'grid_line': '#cccccc',
+                'grid_cell': '#4a90e2',
+                'error': '#ff0000'
+            }
+    
+    def create_main_frames(self):
+        """Создание основных фреймов"""
+        # Главный контейнер
+        self.main_container = tk.Frame(self.root, bg=self.colors['bg'])
+        self.main_container.pack(fill=tk.BOTH, expand=True)
+        
+        # Верхняя панель с заголовком
+        self.header = tk.Frame(self.main_container, bg=self.colors['bg'], height=60)
+        self.header.pack(fill=tk.X, pady=(10, 0))
+        self.header.pack_propagate(False)
+        
+        self.title = tk.Label(
+            self.header, 
+            text="NONOGRAM", 
+            font=("Arial", 28, "bold"),
+            fg=self.colors['accent'],
+            bg=self.colors['bg']
+        )
+        self.title.pack()
+        
+        # Контентная область
+        self.content_area = tk.Frame(self.main_container, bg=self.colors['bg'])
+        self.content_area.pack(fill=tk.BOTH, expand=True, padx=30, pady=10)
+    
+    def clear_content(self):
+        """Очистка контентной области"""
+        for widget in self.content_area.winfo_children():
+            widget.destroy()
+    
+    def load_levels(self):
+        """Загрузка уровней"""
+        default_levels = [
+            {
+                "id": 1,
+                "name": "Уровень 1",
+                "rows": 10,
+                "cols": 5,
+                "difficulty": "Легкий",
+                "riddle": "Сердце",
+                "solution": [
+                    [0,1,0,0,0],
+                    [1,1,1,0,0],
+                    [1,1,1,1,0],
+                    [0,1,1,1,0],
+                    [0,0,1,0,0],
+                    [0,1,0,0,0],
+                    [1,1,1,0,0],
+                    [1,1,1,1,0],
+                    [0,1,1,1,0],
+                    [0,0,1,0,0]
+                ]
+            },
+            {
+                "id": 2,
+                "name": "Уровень 2",
+                "rows": 10,
+                "cols": 5,
+                "difficulty": "Средний",
+                "riddle": "Звезда",
+                "solution": [
+                    [0,0,1,0,0],
+                    [0,1,1,1,0],
+                    [1,1,1,1,1],
+                    [0,1,1,1,0],
+                    [0,0,1,0,0],
+                    [0,0,1,0,0],
+                    [0,1,1,1,0],
+                    [1,1,1,1,1],
+                    [0,1,1,1,0],
+                    [0,0,1,0,0]
+                ]
+            },
+            {
+                "id": 3,
+                "name": "Уровень 3",
+                "rows": 10,
+                "cols": 10,
+                "difficulty": "Сложный",
+                "riddle": "Кораблик",
+                "solution": [
+                    [0,0,0,0,1,0,0,0,0,0],
+                    [0,0,0,1,1,1,0,0,0,0],
+                    [0,0,1,1,1,1,1,0,0,0],
+                    [0,1,0,1,1,1,0,1,0,0],
+                    [1,1,1,1,1,1,1,1,1,0],
+                    [0,1,0,0,0,0,0,1,0,0],
+                    [0,1,0,0,0,0,0,1,0,0],
+                    [0,1,0,0,0,0,0,1,0,0],
+                    [0,1,1,1,1,1,1,1,0,0],
+                    [0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            {
+                "id": 4,
+                "name": "Уровень 4",
+                "rows": 8,
+                "cols": 8,
+                "difficulty": "Средний",
+                "riddle": "Цветок",
+                "solution": [
+                    [0,0,0,1,1,0,0,0],
+                    [0,0,1,1,1,1,0,0],
+                    [0,1,1,1,1,1,1,0],
+                    [1,1,1,1,1,1,1,1],
+                    [0,1,1,1,1,1,1,0],
+                    [0,0,1,1,1,1,0,0],
+                    [0,0,0,1,1,0,0,0],
+                    [0,0,0,0,0,0,0,0]
+                ]
+            },
+            {
+                "id": 5,
+                "name": "Уровень 5",
+                "rows": 12,
+                "cols": 12,
+                "difficulty": "Сложный",
+                "riddle": "Дом",
+                "solution": [
+                    [0,0,0,0,1,1,1,1,0,0,0,0],
+                    [0,0,0,1,1,1,1,1,1,0,0,0],
+                    [0,0,1,1,1,1,1,1,1,1,0,0],
+                    [0,1,1,1,1,1,1,1,1,1,1,0],
+                    [1,1,1,1,1,1,1,1,1,1,1,1],
+                    [0,0,0,1,1,0,0,1,1,0,0,0],
+                    [0,0,0,1,1,0,0,1,1,0,0,0],
+                    [0,0,0,1,1,0,0,1,1,0,0,0],
+                    [0,0,0,1,1,0,0,1,1,0,0,0],
+                    [0,0,0,1,1,1,1,1,1,0,0,0],
+                    [0,0,0,1,1,0,0,1,1,0,0,0],
+                    [0,0,0,1,1,0,0,1,1,0,0,0]
+                ]
+            }
+        ]
+        
+        if os.path.exists("nonogram_levels.json"):
+            try:
+                with open("nonogram_levels.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if isinstance(data, list):
+                        return data
+                    else:
+                        return default_levels
+            except:
+                return default_levels
+        else:
+            with open("nonogram_levels.json", "w", encoding="utf-8") as f:
+                json.dump(default_levels, f, ensure_ascii=False, indent=2)
+            return default_levels
+    
+    def create_level_card_grid(self, parent, level_data, index):
+        """Создание карточки уровня в виде сетки (как на картинке)"""
+        card = tk.Frame(
+            parent,
+            bg=self.colors['card'],
+            relief=tk.FLAT,
+            bd=1,
+            highlightbackground=self.colors['grid_line'],
+            highlightthickness=1,
+            width=180,
+            height=160
+        )
+        card.pack_propagate(False)
+        card.pack(side=tk.LEFT, padx=10, pady=10)
+        
+        # Внутренний контент
+        inner_frame = tk.Frame(card, bg=self.colors['card'])
+        inner_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
+        
+        # Название уровня
+        name_label = tk.Label(
+            inner_frame,
+            text=level_data['name'],
+            font=("Arial", 14, "bold"),
+            fg=self.colors['text'],
+            bg=self.colors['card']
+        )
+        name_label.pack(pady=(0, 5))
+        
+        # Размер уровня
+        size_text = f"{level_data['rows']}x{level_data['cols']}"
+        size_label = tk.Label(
+            inner_frame,
+            text=size_text,
+            font=("Arial", 10),
+            fg=self.colors['text_secondary'],
+            bg=self.colors['card']
+        )
+        size_label.pack()
+        
+        # Сложность
+        difficulty_label = tk.Label(
+            inner_frame,
+            text=level_data['difficulty'],
+            font=("Arial", 9),
+            fg=self.colors['accent'],
+            bg=self.colors['card']
+        )
+        difficulty_label.pack(pady=(5, 10))
+        
+        level_id = str(level_data['id'])
+        is_completed = level_id in self.completed_levels
+        
+        # Статус прохождения
+        if is_completed:
+            status_label = tk.Label(
+                inner_frame,
+                text="✓ ПРОЙДЕН",
+                font=("Arial", 9, "bold"),
+                fg=self.colors['accent'],
+                bg=self.colors['card']
+            )
+            status_label.pack(pady=(0, 5))
+            
+            play_btn = tk.Button(
+                inner_frame,
+                text="ПОВТОРИТЬ",
+                font=("Arial", 9, "bold"),
+                bg=self.colors['button'],
+                fg=self.colors['text'],
+                relief=tk.FLAT,
+                cursor="hand2",
+                padx=15,
+                pady=4,
+                command=lambda: self.start_level(index)
+            )
+            play_btn.pack()
+        else:
+            play_btn = tk.Button(
+                inner_frame,
+                text="ИГРАТЬ",
+                font=("Arial", 10, "bold"),
+                bg=self.colors['accent'],
+                fg='#ffffff',
+                relief=tk.FLAT,
+                cursor="hand2",
+                padx=20,
+                pady=5,
+                command=lambda: self.start_level(index)
+            )
+            play_btn.pack()
+        
+        # Эффект наведения
+        def on_enter(e):
+            card.config(bg=self.colors['card_hover'])
+            inner_frame.config(bg=self.colors['card_hover'])
+            name_label.config(bg=self.colors['card_hover'])
+            size_label.config(bg=self.colors['card_hover'])
+            difficulty_label.config(bg=self.colors['card_hover'])
+            if is_completed:
+                status_label.config(bg=self.colors['card_hover'])
+        
+        def on_leave(e):
+            card.config(bg=self.colors['card'])
+            inner_frame.config(bg=self.colors['card'])
+            name_label.config(bg=self.colors['card'])
+            size_label.config(bg=self.colors['card'])
+            difficulty_label.config(bg=self.colors['card'])
+            if is_completed:
+                status_label.config(bg=self.colors['card'])
+        
+        card.bind("<Enter>", on_enter)
+        card.bind("<Leave>", on_leave)
+        inner_frame.bind("<Enter>", on_enter)
+        inner_frame.bind("<Leave>", on_leave)
+    
+    def create_modern_button(self, parent, text, command, width=20, height=2, variant="primary"):
+        """Создание стильной кнопки"""
+        if variant == "primary":
+            bg_color = self.colors['accent']
+            hover_color = self.colors['accent_hover']
+            fg_color = '#ffffff'
+        else:
+            bg_color = self.colors['button']
+            hover_color = self.colors['button_hover']
+            fg_color = self.colors['text']
+        
+        btn = tk.Button(
+            parent,
+            text=text,
+            command=command,
+            font=("Arial", 12, "bold"),
+            bg=bg_color,
+            fg=fg_color,
+            relief=tk.FLAT,
+            cursor="hand2",
+            width=width,
+            height=height
+        )
+        
+        def on_enter(e):
+            btn.config(bg=hover_color)
+        
+        def on_leave(e):
+            btn.config(bg=bg_color)
+        
+        btn.bind("<Enter>", on_enter)
+        btn.bind("<Leave>", on_leave)
+        
+        return btn
+    
+    def show_start_screen(self):
+        """Показ стартового экрана"""
+        self.clear_content()
+        self.current_screen = "start"
+        
+        center_frame = tk.Frame(self.content_area, bg=self.colors['bg'])
+        center_frame.pack(expand=True, fill=tk.BOTH)
+        
+        buttons = [
+            ("СТАРТ", lambda: self.show_levels(), "primary"),
+            ("НАСТРОЙКИ", lambda: self.show_settings(), "secondary"),
+            ("ВЫХОД", self.root.quit, "secondary")
+        ]
+        
+        for text, command, variant in buttons:
+            btn = self.create_modern_button(center_frame, text, command, width=20, height=1, variant=variant)
+            btn.pack(pady=8)
+    
+    def show_levels(self):
+        """Показ списка уровней в виде сетки (как на картинке)"""
+        self.clear_content()
+        self.current_screen = "levels"
+        
+        # Верхняя панель с кнопкой назад
+        top_bar = tk.Frame(self.content_area, bg=self.colors['bg'], height=40)
+        top_bar.pack(fill=tk.X, pady=(0, 10))
+        top_bar.pack_propagate(False)
+        
+        # Кнопка "◀ Назад"
+        back_button = tk.Button(
+            top_bar,
+            text="◀ НАЗАД",
+            command=self.show_start_screen,
+            font=("Arial", 10, "bold"),
+            bg=self.colors['button'],
+            fg=self.colors['text'],
+            relief=tk.FLAT,
+            cursor="hand2",
+            padx=12,
+            pady=4
+        )
+        back_button.pack(side=tk.LEFT)
+        
+        def on_back_enter(e):
+            back_button.config(bg=self.colors['button_hover'])
+        
+        def on_back_leave(e):
+            back_button.config(bg=self.colors['button'])
+        
+        back_button.bind("<Enter>", on_back_enter)
+        back_button.bind("<Leave>", on_back_leave)
+        
+        # Заголовок
+        tk.Label(
+            self.content_area,
+            text="УРОВНИ",
+            font=("Arial", 20, "bold"),
+            fg=self.colors['text'],
+            bg=self.colors['bg']
+        ).pack(pady=(0, 15))
+        
+        # Контейнер для карточек с прокруткой
+        cards_container = tk.Frame(self.content_area, bg=self.colors['bg'])
+        cards_container.pack(fill=tk.BOTH, expand=True)
+        
+        # Canvas для скроллинга
+        canvas = tk.Canvas(cards_container, bg=self.colors['bg'], highlightthickness=0)
+        scrollbar = ttk.Scrollbar(cards_container, orient="vertical", command=canvas.yview)
+        
+        scrollable_frame = tk.Frame(canvas, bg=self.colors['bg'])
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw", width=canvas.winfo_reqwidth())
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Создаем сетку карточек (3 колонки)
+        row_frame = None
+        for i, level in enumerate(self.levels):
+            if i % 3 == 0:
+                row_frame = tk.Frame(scrollable_frame, bg=self.colors['bg'])
+                row_frame.pack(fill=tk.X, pady=5)
+            self.create_level_card_grid(row_frame, level, i)
+        
+        # Добавляем пустые места для выравнивания
+        if row_frame and len(self.levels) % 3 != 0:
+            for _ in range(3 - (len(self.levels) % 3)):
+                empty = tk.Frame(row_frame, width=180, height=160, bg=self.colors['bg'])
+                empty.pack(side=tk.LEFT, padx=10, pady=10)
+                empty.pack_propagate(False)
+        
+        # Обновляем ширину canvas
+        def update_width(event):
+            canvas.itemconfig(1, width=event.width)
+        
+        canvas.bind("<Configure>", update_width)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+    
+    def show_settings(self):
+        """Показ настроек - компактная версия"""
+        self.clear_content()
+        self.current_screen = "settings"
+        
+        # Верхняя панель с кнопкой назад
+        top_bar = tk.Frame(self.content_area, bg=self.colors['bg'], height=40)
+        top_bar.pack(fill=tk.X, pady=(0, 10))
+        top_bar.pack_propagate(False)
+        
+        # Кнопка "◀ Назад"
+        back_button = tk.Button(
+            top_bar,
+            text="◀ НАЗАД",
+            command=self.show_start_screen,
+            font=("Arial", 10, "bold"),
+            bg=self.colors['button'],
+            fg=self.colors['text'],
+            relief=tk.FLAT,
+            cursor="hand2",
+            padx=12,
+            pady=4
+        )
+        back_button.pack(side=tk.LEFT)
+        
+        def on_back_enter(e):
+            back_button.config(bg=self.colors['button_hover'])
+        
+        def on_back_leave(e):
+            back_button.config(bg=self.colors['button'])
+        
+        back_button.bind("<Enter>", on_back_enter)
+        back_button.bind("<Leave>", on_back_leave)
+        
+        # Заголовок
+        tk.Label(
+            self.content_area,
+            text="НАСТРОЙКИ",
+            font=("Arial", 20, "bold"),
+            fg=self.colors['text'],
+            bg=self.colors['bg']
+        ).pack(pady=(0, 15))
+        
+        # Контейнер для всех настроек
+        settings_container = tk.Frame(self.content_area, bg=self.colors['bg'])
+        settings_container.pack(expand=True, fill=tk.BOTH)
+        
+        # Центрируем содержимое
+        center_frame = tk.Frame(settings_container, bg=self.colors['bg'])
+        center_frame.pack(expand=True)
+        
+        # Настройка подсказок
+        hints_container = tk.Frame(center_frame, bg=self.colors['card'], relief=tk.FLAT, bd=1,
+                                   highlightbackground=self.colors['grid_line'], highlightthickness=1)
+        hints_container.pack(pady=8, padx=20, fill=tk.X)
+        
+        tk.Label(
+            hints_container,
+            text="ПОДСКАЗКИ",
+            font=("Arial", 13, "bold"),
+            fg=self.colors['text'],
+            bg=self.colors['card']
+        ).pack(pady=8)
+        
+        hints_buttons = tk.Frame(hints_container, bg=self.colors['card'])
+        hints_buttons.pack(pady=6)
+        
+        hints_on = tk.Button(
+            hints_buttons,
+            text="ВКЛЮЧЕНЫ",
+            command=lambda: self.set_hints(True),
+            font=("Arial", 10, "bold"),
+            bg=self.colors['accent'] if self.show_hints else self.colors['button'],
+            fg='#ffffff' if self.show_hints else self.colors['text'],
+            relief=tk.FLAT,
+            cursor="hand2",
+            padx=18,
+            pady=4
+        )
+        hints_on.pack(side=tk.LEFT, padx=5)
+        
+        hints_off = tk.Button(
+            hints_buttons,
+            text="ВЫКЛЮЧЕНЫ",
+            command=lambda: self.set_hints(False),
+            font=("Arial", 10, "bold"),
+            bg=self.colors['accent'] if not self.show_hints else self.colors['button'],
+            fg='#ffffff' if not self.show_hints else self.colors['text'],
+            relief=tk.FLAT,
+            cursor="hand2",
+            padx=18,
+            pady=4
+        )
+        hints_off.pack(side=tk.LEFT, padx=5)
+        
+        tk.Label(
+            hints_container,
+            text="Красные крестики над рядами с ошибками",
+            font=("Arial", 9),
+            fg=self.colors['text_secondary'],
+            bg=self.colors['card']
+        ).pack(pady=5)
+        
+        # Настройка темы
+        theme_container = tk.Frame(center_frame, bg=self.colors['card'], relief=tk.FLAT, bd=1,
+                                   highlightbackground=self.colors['grid_line'], highlightthickness=1)
+        theme_container.pack(pady=8, padx=20, fill=tk.X)
+        
+        tk.Label(
+            theme_container,
+            text="ТЕМА",
+            font=("Arial", 13, "bold"),
+            fg=self.colors['text'],
+            bg=self.colors['card']
+        ).pack(pady=8)
+        
+        theme_buttons = tk.Frame(theme_container, bg=self.colors['card'])
+        theme_buttons.pack(pady=6)
+        
+        dark_theme = tk.Button(
+            theme_buttons,
+            text="ТЕМНАЯ",
+            command=lambda: self.set_theme("dark"),
+            font=("Arial", 10, "bold"),
+            bg=self.colors['accent'] if self.current_theme == "dark" else self.colors['button'],
+            fg='#ffffff' if self.current_theme == "dark" else self.colors['text'],
+            relief=tk.FLAT,
+            cursor="hand2",
+            padx=18,
+            pady=4
+        )
+        dark_theme.pack(side=tk.LEFT, padx=5)
+        
+        light_theme = tk.Button(
+            theme_buttons,
+            text="СВЕТЛАЯ",
+            command=lambda: self.set_theme("light"),
+            font=("Arial", 10, "bold"),
+            bg=self.colors['accent'] if self.current_theme == "light" else self.colors['button'],
+            fg='#ffffff' if self.current_theme == "light" else self.colors['text'],
+            relief=tk.FLAT,
+            cursor="hand2",
+            padx=18,
+            pady=4
+        )
+        light_theme.pack(side=tk.LEFT, padx=5)
+        
+        # Информация об управлении
+        controls_container = tk.Frame(center_frame, bg=self.colors['card'], relief=tk.FLAT, bd=1,
+                                      highlightbackground=self.colors['grid_line'], highlightthickness=1)
+        controls_container.pack(pady=8, padx=20, fill=tk.X)
+        
+        tk.Label(
+            controls_container,
+            text="УПРАВЛЕНИЕ",
+            font=("Arial", 13, "bold"),
+            fg=self.colors['text'],
+            bg=self.colors['card']
+        ).pack(pady=8)
+        
+        controls_text = """• Левая кнопка мыши - ЗАКРАСИТЬ ячейку
+• Правая кнопка мыши - ОЧИСТИТЬ ячейку"""
+        
+        tk.Label(
+            controls_container,
+            text=controls_text,
+            font=("Arial", 10),
+            fg=self.colors['text_secondary'],
+            bg=self.colors['card'],
+            justify=tk.LEFT
+        ).pack(pady=8)
+        
+        # Кнопка сброса прогресса
+        reset_btn = tk.Button(
+            center_frame,
+            text="🔄 СБРОСИТЬ ПРОГРЕСС",
+            command=self.reset_progress,
+            font=("Arial", 10, "bold"),
+            bg='#e94560',
+            fg='#ffffff',
+            relief=tk.FLAT,
+            cursor="hand2",
+            padx=20,
+            pady=6
+        )
+        reset_btn.pack(pady=15)
+    
+    def set_hints(self, enabled):
+        """Установка подсказок"""
+        self.show_hints = enabled
+        if self.current_level is not None:
+            self.show_game_screen()
+        else:
+            self.show_settings()
+    
+    def set_theme(self, theme):
+        """Установка темы"""
+        self.current_theme = theme
+        self.setup_styles()
+        
+        # Обновляем цвета всех фреймов
+        self.root.configure(bg=self.colors['bg'])
+        self.main_container.configure(bg=self.colors['bg'])
+        self.header.configure(bg=self.colors['bg'])
+        self.title.configure(bg=self.colors['bg'], fg=self.colors['accent'])
+        self.content_area.configure(bg=self.colors['bg'])
+        
+        # Перерисовываем текущий экран
+        if self.current_screen == "start":
+            self.show_start_screen()
+        elif self.current_screen == "levels":
+            self.show_levels()
+        elif self.current_screen == "settings":
+            self.show_settings()
+        elif self.current_screen == "game" and self.current_level is not None:
+            self.show_game_screen()
+    
+    def reset_progress(self):
+        """Сброс прогресса всех уровней"""
+        if messagebox.askyesno("Сброс прогресса", "Вы уверены, что хотите сбросить прогресс всех уровней?"):
+            self.completed_levels = {}
+            self.save_completed_levels()
+            self.show_levels()
+            messagebox.showinfo("Успех", "Прогресс успешно сброшен!")
+    
+    def calculate_hints(self, grid):
+        """Вычисление подсказок"""
+        rows_hints = []
+        for row in grid:
+            hints = []
+            count = 0
+            for cell in row:
+                if cell == 1:
+                    count += 1
+                elif count > 0:
+                    hints.append(count)
+                    count = 0
+            if count > 0:
+                hints.append(count)
+            rows_hints.append(hints if hints else [0])
+        
+        cols_hints = []
+        for col in range(len(grid[0])):
+            hints = []
+            count = 0
+            for row in range(len(grid)):
+                if grid[row][col] == 1:
+                    count += 1
+                elif count > 0:
+                    hints.append(count)
+                    count = 0
+            if count > 0:
+                hints.append(count)
+            cols_hints.append(hints if hints else [0])
+        
+        return rows_hints, cols_hints
+    
+    def check_row_errors(self, row):
+        """Проверка строки на ошибки"""
+        if not self.show_hints:
+            return False
+        
+        for col in range(self.cols):
+            if self.user_grid[row][col] == 1 and self.grid_data[row][col] != 1:
+                return True
+        return False
+    
+    def check_col_errors(self, col):
+        """Проверка столбца на ошибки"""
+        if not self.show_hints:
+            return False
+        
+        for row in range(self.rows):
+            if self.user_grid[row][col] == 1 and self.grid_data[row][col] != 1:
+                return True
+        return False
+    
+    def start_level(self, level_idx):
+        """Начало уровня"""
+        self.current_level = self.levels[level_idx]
+        self.current_level_index = level_idx
+        self.grid_data = self.current_level["solution"]
+        self.rows = len(self.grid_data)
+        self.cols = len(self.grid_data[0])
+        
+        max_width = self.root.winfo_width() - 200
+        max_height = self.root.winfo_height() - 150
+        
+        self.cell_size = min(35, max_width // self.cols, max_height // self.rows)
+        if self.cell_size < 20:
+            self.cell_size = 20
+        
+        self.user_grid = [[0 for _ in range(self.cols)] for _ in range(self.rows)]
+        self.rows_hints, self.cols_hints = self.calculate_hints(self.grid_data)
+        
+        self.show_game_screen()
+    
+    def show_game_screen(self):
+        """Показ игрового экрана"""
+        self.clear_content()
+        self.current_screen = "game"
+        
+        # Верхняя панель с кнопкой назад
+        top_bar = tk.Frame(self.content_area, bg=self.colors['bg'], height=40)
+        top_bar.pack(fill=tk.X, pady=(0, 10))
+        top_bar.pack_propagate(False)
+        
+        back_button = tk.Button(
+            top_bar,
+            text="◀ К УРОВНЯМ",
+            command=self.back_to_menu,
+            font=("Arial", 10, "bold"),
+            bg=self.colors['button'],
+            fg=self.colors['text'],
+            relief=tk.FLAT,
+            cursor="hand2",
+            padx=12,
+            pady=4
+        )
+        back_button.pack(side=tk.LEFT)
+        
+        def on_back_enter(e):
+            back_button.config(bg=self.colors['button_hover'])
+        
+        def on_back_leave(e):
+            back_button.config(bg=self.colors['button'])
+        
+        back_button.bind("<Enter>", on_back_enter)
+        back_button.bind("<Leave>", on_back_leave)
+        
+        info_frame = tk.Frame(self.content_area, bg=self.colors['bg'])
+        info_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        tk.Label(
+            info_frame,
+            text=self.current_level['name'],
+            font=("Arial", 16, "bold"),
+            fg=self.colors['text'],
+            bg=self.colors['bg']
+        ).pack(side=tk.LEFT)
+        
+        control_frame = tk.Frame(self.content_area, bg=self.colors['bg'])
+        control_frame.pack(fill=tk.X, pady=5)
+        
+        buttons = [
+            ("✓ ПРОВЕРИТЬ", self.check_solution),
+            ("⟳ СБРОСИТЬ", self.reset_level)
+        ]
+        
+        for text, command in buttons:
+            btn = tk.Button(
+                control_frame,
+                text=text,
+                command=command,
+                font=("Arial", 10, "bold"),
+                bg=self.colors['button'],
+                fg=self.colors['text'],
+                relief=tk.FLAT,
+                cursor="hand2"
+            )
+            btn.pack(side=tk.LEFT, padx=5)
+        
+        game_frame = tk.Frame(self.content_area, bg=self.colors['bg'])
+        game_frame.pack(expand=True, fill=tk.BOTH)
+        
+        self.draw_game_grid(game_frame)
+    
+    def draw_game_grid(self, parent):
+        """Отрисовка игровой сетки"""
+        max_row_hints = max(len(hints) for hints in self.rows_hints)
+        max_col_hints = max(len(hints) for hints in self.cols_hints)
+        
+        hint_offset_x = max_col_hints * self.cell_size
+        hint_offset_y = max_row_hints * self.cell_size
+        
+        total_width = hint_offset_x + self.cols * self.cell_size
+        total_height = hint_offset_y + self.rows * self.cell_size
+        
+        canvas = tk.Canvas(
+            parent,
+            width=total_width + 2,
+            height=total_height + 2,
+            bg=self.colors['grid_bg'],
+            highlightthickness=1,
+            highlightbackground=self.colors['grid_line']
+        )
+        canvas.pack(expand=True)
+        
+        # Подсказки строк
+        for i, hints in enumerate(self.rows_hints):
+            row_has_error = self.check_row_errors(i)
+            
+            for j, hint in enumerate(reversed(hints)):
+                x = hint_offset_x - (j + 1) * self.cell_size + self.cell_size // 2
+                y = hint_offset_y + i * self.cell_size + self.cell_size // 2
+                
+                if row_has_error and self.show_hints:
+                    cross_size = self.cell_size // 3
+                    canvas.create_line(
+                        x - cross_size, y - cross_size,
+                        x + cross_size, y + cross_size,
+                        fill=self.colors['error'], width=2
+                    )
+                    canvas.create_line(
+                        x + cross_size, y - cross_size,
+                        x - cross_size, y + cross_size,
+                        fill=self.colors['error'], width=2
+                    )
+                else:
+                    canvas.create_text(x, y, text=str(hint), font=("Arial", self.cell_size//3),
+                                      fill=self.colors['text'])
+        
+        # Подсказки столбцов
+        for j, hints in enumerate(self.cols_hints):
+            col_has_error = self.check_col_errors(j)
+            
+            for i, hint in enumerate(reversed(hints)):
+                x = hint_offset_x + j * self.cell_size + self.cell_size // 2
+                y = hint_offset_y - (i + 1) * self.cell_size + self.cell_size // 2
+                
+                if col_has_error and self.show_hints:
+                    cross_size = self.cell_size // 3
+                    canvas.create_line(
+                        x - cross_size, y - cross_size,
+                        x + cross_size, y + cross_size,
+                        fill=self.colors['error'], width=2
+                    )
+                    canvas.create_line(
+                        x + cross_size, y - cross_size,
+                        x - cross_size, y + cross_size,
+                        fill=self.colors['error'], width=2
+                    )
+                else:
+                    canvas.create_text(x, y, text=str(hint), font=("Arial", self.cell_size//3),
+                                      fill=self.colors['text'])
+        
+        # Сетка и ячейки
+        for i in range(self.rows):
+            for j in range(self.cols):
+                x1 = hint_offset_x + j * self.cell_size
+                y1 = hint_offset_y + i * self.cell_size
+                x2 = x1 + self.cell_size
+                y2 = y1 + self.cell_size
+                
+                if self.user_grid[i][j] == 1:
+                    fill_color = self.colors['grid_cell']
+                else:
+                    fill_color = self.colors['grid_bg']
+                
+                rect = canvas.create_rectangle(
+                    x1, y1, x2, y2,
+                    fill=fill_color,
+                    outline=self.colors['grid_line'],
+                    width=1
+                )
+                
+                canvas.tag_bind(rect, "<Button-1>", lambda e, r=i, c=j: self.left_click(r, c))
+                canvas.tag_bind(rect, "<Button-3>", lambda e, r=i, c=j: self.right_click(r, c))
+    
+    def left_click(self, row, col):
+        """Левая кнопка - закраска"""
+        if self.user_grid[row][col] == 1:
+            self.user_grid[row][col] = 0
+        else:
+            self.user_grid[row][col] = 1
+        self.show_game_screen()
+    
+    def right_click(self, row, col):
+        """Правая кнопка - очистка"""
+        if self.user_grid[row][col] == 1:
+            self.user_grid[row][col] = 0
+        self.show_game_screen()
+    
+    def reset_level(self):
+        """Сброс уровня"""
+        self.user_grid = [[0 for _ in range(self.cols)] for _ in range(self.rows)]
+        self.show_game_screen()
+    
+    def check_solution(self):
+        """Проверка решения"""
+        correct = True
+        for i in range(self.rows):
+            for j in range(self.cols):
+                if self.grid_data[i][j] == 1 and self.user_grid[i][j] != 1:
+                    correct = False
+                    break
+                elif self.grid_data[i][j] == 0 and self.user_grid[i][j] == 1:
+                    correct = False
+                    break
+            if not correct:
+                break
+        
+        if correct:
+            level_id = str(self.current_level['id'])
+            if level_id not in self.completed_levels:
+                self.completed_levels[level_id] = {
+                    'name': self.current_level['name'],
+                    'riddle': self.current_level['riddle']
+                }
+                self.save_completed_levels()
+            
+            self.show_riddle_screen()
+        else:
+            messagebox.showerror("Ошибка", "❌ Решение неверное! Попробуйте еще раз.")
+    
+    def show_riddle_screen(self):
+        """Показ экрана с отгадкой"""
+        self.clear_content()
+        
+        # Верхняя панель с кнопкой назад
+        top_bar = tk.Frame(self.content_area, bg=self.colors['bg'], height=40)
+        top_bar.pack(fill=tk.X, pady=(0, 10))
+        top_bar.pack_propagate(False)
+        
+        back_button = tk.Button(
+            top_bar,
+            text="◀ К УРОВНЯМ",
+            command=self.show_levels,
+            font=("Arial", 10, "bold"),
+            bg=self.colors['button'],
+            fg=self.colors['text'],
+            relief=tk.FLAT,
+            cursor="hand2",
+            padx=12,
+            pady=4
+        )
+        back_button.pack(side=tk.LEFT)
+        
+        riddle_frame = tk.Frame(self.content_area, bg=self.colors['bg'])
+        riddle_frame.pack(expand=True, fill=tk.BOTH)
+        
+        tk.Label(
+            riddle_frame,
+            text="ПОЗДРАВЛЯЕМ!",
+            font=("Arial", 28, "bold"),
+            fg=self.colors['accent'],
+            bg=self.colors['bg']
+        ).pack(pady=20)
+        
+        tk.Label(
+            riddle_frame,
+            text=f"Вы прошли {self.current_level['name']}!",
+            font=("Arial", 16),
+            fg=self.colors['text'],
+            bg=self.colors['bg']
+        ).pack(pady=10)
+        
+        tk.Label(
+            riddle_frame,
+            text=f"На картинке было зашифровано:",
+            font=("Arial", 14),
+            fg=self.colors['text'],
+            bg=self.colors['bg']
+        ).pack(pady=10)
+        
+        tk.Label(
+            riddle_frame,
+            text=f"★ {self.current_level['riddle']} ★",
+            font=("Arial", 24, "bold"),
+            fg=self.colors['accent'],
+            bg=self.colors['bg']
+        ).pack(pady=20)
+        
+        buttons_frame = tk.Frame(riddle_frame, bg=self.colors['bg'])
+        buttons_frame.pack(pady=30)
+        
+        tk.Button(
+            buttons_frame,
+            text="ПРОДОЛЖИТЬ",
+            command=self.show_levels,
+            font=("Arial", 14, "bold"),
+            bg=self.colors['accent'],
+            fg='#ffffff',
+            relief=tk.FLAT,
+            cursor="hand2",
+            padx=30,
+            pady=10
+        ).pack(side=tk.LEFT, padx=10)
+        
+        tk.Button(
+            buttons_frame,
+            text="ПОВТОРИТЬ УРОВЕНЬ",
+            command=lambda: self.start_level(self.current_level_index),
+            font=("Arial", 12),
+            bg=self.colors['button'],
+            fg=self.colors['text'],
+            relief=tk.FLAT,
+            cursor="hand2",
+            padx=20,
+            pady=10
+        ).pack(side=tk.LEFT, padx=10)
+    
+    def back_to_menu(self):
+        """Возврат в меню уровней"""
+        self.current_level = None
+        self.show_levels()
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    game = ModernNonogram(root)
+    root.mainloop()
