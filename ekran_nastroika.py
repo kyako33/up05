@@ -39,7 +39,7 @@ class ToggleSwitch:
         self._create_rounded_rect(self.canvas, 2, 2, width-2, height-2, radius-2, fill_color, fill_color, 0)
         
         # Рисуем круглую ручку
-        knob_radius = 16
+        knob_radius = 17
         if self.state:
             self.canvas.create_oval(width - knob_radius*2 - 2, 4, width - 4, height - 4, 
                                    fill='#D9D9D9', outline='#677DB4', width=1)
