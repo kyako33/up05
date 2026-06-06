@@ -160,7 +160,6 @@ class ResultPanel:
             self.show_error()
     
     def update_theme(self, dark_theme):
-        """Обновление темы панели"""
         self.dark_theme = dark_theme
         self.bg_color = '#19233D' if self.dark_theme else '#677DB4'
         
@@ -189,7 +188,6 @@ class ResultPanel:
                 widget.configure(bg=self.bg_color)
     
     def update_button_theme(self, button):
-        """Обновление темы кнопки"""
         if button.winfo_exists():
             if self.dark_theme:
                 button.configure(bg='#0D1938', activebackground='#122145')
